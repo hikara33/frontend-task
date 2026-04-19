@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Tabs } from '@consta/uikit/Tabs';
 import { useAppStore } from './store/useAppStore';
 import { TokenInput } from './components/TokenInput';
@@ -14,50 +15,74 @@ const items: { label: string; id: ViewMode }[] = [
   { label: 'Посты', id: 'posts' },
 ];
 
-function App() {
+function AppContent() {
   const { token, viewMode, setViewMode } = useAppStore();
-  const currentTab = items.find((item) => item.id === viewMode);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!token) return;
+    const currentPath = location.pathname;
+    if (currentPath === '/users' && viewMode !== 'users') {
+      setViewMode('users');
+    } else if (currentPath === '/posts' && viewMode !== 'posts') {
+      setViewMode('posts');
+    }
+  }, [token, viewMode, setViewMode, location.pathname]);
+
+  const handleTabChange = (item: { id: ViewMode }) => {
+    setViewMode(item.id);
+    navigate(item.id === 'users' ? '/users' : '/posts');
+  };
+
+  const getCurrentTab = () => {
+    const path = location.pathname;
+    if (path.startsWith('/posts')) return items.find(i => i.id === 'posts');
+    return items.find(i => i.id === 'users');
+  };
 
   return (
-    <BrowserRouter>
-      <div className="app">
-        <header className="header">
-          <h1 style={{ margin: 0 }}>GoRest тестовое задание</h1>
-        </header>
-        <TokenInput />
-        {token && (
-          <Tabs
-            value={currentTab}
-            onChange={(item) => setViewMode(item.id)}
-            items={items}
-            style={{ padding: '0 24px' }}
+    <div className="app">
+      <header className="header">
+        <h1 style={{ margin: 0 }}>GoRest тестовое задание</h1>
+      </header>
+      <TokenInput />
+      {token && (
+        <Tabs
+          value={getCurrentTab()}
+          onChange={handleTabChange}
+          items={items}
+          style={{ padding: '0 24px' }}
+        />
+      )}
+      <main className="main">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              token ? (
+                <Navigate to="/users" replace />
+              ) : (
+                <div style={{ padding: '24px' }}>
+                  Введите access token для начала работы
+                </div>
+              )
+            }
           />
-        )}
-        <main className="main">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                token ? (
-                  viewMode === 'users' ? (
-                    <Navigate to="/users" replace />
-                  ) : (
-                    <Navigate to="/posts" replace />
-                  )
-                ) : (
-                  <div style={{ padding: '24px' }}>
-                    Введите access token для начала работы
-                  </div>
-                )
-              }
-            />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/users/:id" element={<UserCard />} />
-            <Route path="/posts" element={<PostsPage />} />
-            <Route path="/posts/:id" element={<PostCard />} />
-          </Routes>
-        </main>
-      </div>
+          <Route path="/users" element={<UsersPage />} />
+          <Route path="/users/:id" element={<UserCard />} />
+          <Route path="/posts" element={<PostsPage />} />
+          <Route path="/posts/:id" element={<PostCard />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }
