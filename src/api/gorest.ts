@@ -3,19 +3,12 @@ import type { User, Post, Comment } from '../types';
 
 const BASE_URL = 'https://gorest.co.in/public/v2';
 
-interface PaginationHeaders {
+interface PaginationMeta {
   page: number;
   per_page: number;
   total: number;
   total_pages: number;
 }
-
-const getPaginationHeaders = (headers: Record<string, string>): PaginationHeaders => ({
-  page: parseInt(headers['x-pagination-page'] || '1', 10),
-  per_page: parseInt(headers['x-pagination-limit'] || '10', 10),
-  total: parseInt(headers['x-pagination-total'] || '0', 10),
-  total_pages: parseInt(headers['x-pagination-total-pages'] || '0', 10),
-});
 
 const createApiClient = (token: string) =>
   axios.create({
@@ -24,6 +17,11 @@ const createApiClient = (token: string) =>
       Authorization: `Bearer ${token}`,
     },
   });
+
+const calcTotalPages = (total: number, perPage: number): number => {
+  if (total === 0) return 0;
+  return Math.ceil(total / perPage);
+};
 
 export const getUsers = async (
   token: string,
@@ -34,9 +32,16 @@ export const getUsers = async (
   const response = await client.get<User[]>('/users', {
     params: { page, per_page: perPage },
   });
-  const pagination = getPaginationHeaders(response.headers as Record<string, string>);
+  const data = response.data;
+  const total = data.length;
+  const pagination: PaginationMeta = {
+    page,
+    per_page: perPage,
+    total: total + (page - 1) * perPage,
+    total_pages: calcTotalPages(total + (page - 1) * perPage, perPage),
+  };
   return {
-    data: response.data,
+    data,
     meta: { pagination },
   };
 };
@@ -56,9 +61,16 @@ export const getPosts = async (
   const response = await client.get<Post[]>('/posts', {
     params: { page, per_page: perPage },
   });
-  const pagination = getPaginationHeaders(response.headers as Record<string, string>);
+  const data = response.data;
+  const total = data.length;
+  const pagination: PaginationMeta = {
+    page,
+    per_page: perPage,
+    total: total + (page - 1) * perPage,
+    total_pages: calcTotalPages(total + (page - 1) * perPage, perPage),
+  };
   return {
-    data: response.data,
+    data,
     meta: { pagination },
   };
 };
@@ -79,9 +91,16 @@ export const getUserPosts = async (
   const response = await client.get<Post[]>('/posts', {
     params: { user_id: userId, page, per_page: perPage },
   });
-  const pagination = getPaginationHeaders(response.headers as Record<string, string>);
+  const data = response.data;
+  const total = data.length;
+  const pagination: PaginationMeta = {
+    page,
+    per_page: perPage,
+    total: total + (page - 1) * perPage,
+    total_pages: calcTotalPages(total + (page - 1) * perPage, perPage),
+  };
   return {
-    data: response.data,
+    data,
     meta: { pagination },
   };
 };
@@ -96,9 +115,16 @@ export const getPostComments = async (
   const response = await client.get<Comment[]>(`/posts/${postId}/comments`, {
     params: { page, per_page: perPage },
   });
-  const pagination = getPaginationHeaders(response.headers as Record<string, string>);
+  const data = response.data;
+  const total = data.length;
+  const pagination: PaginationMeta = {
+    page,
+    per_page: perPage,
+    total: total + (page - 1) * perPage,
+    total_pages: calcTotalPages(total + (page - 1) * perPage, perPage),
+  };
   return {
-    data: response.data,
+    data,
     meta: { pagination },
   };
 };
