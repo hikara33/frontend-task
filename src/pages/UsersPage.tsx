@@ -11,6 +11,7 @@ export const UsersPage = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
@@ -18,12 +19,15 @@ export const UsersPage = () => {
   const fetchUsers = useCallback(async () => {
     if (!token) return;
     setLoading(true);
+    setError(null);
     try {
       const response = await getUsers(token, currentPage, perPage);
       setUsers(response.data);
       setTotalPages(response.meta.pagination.total_pages);
-    } catch (error) {
-      console.error('Error fetching users:', error);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Ошибка при загрузке пользователей';
+      setError(message);
+      console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
     }
@@ -44,6 +48,11 @@ export const UsersPage = () => {
   return (
     <div style={{ padding: '24px' }}>
       <h2 style={{ marginBottom: '16px' }}>Список пользователей</h2>
+      {error && (
+        <div style={{ padding: '16px', background: '#ffeaea', border: '1px solid #ff0000', borderRadius: '4px', marginBottom: '16px' }}>
+          Ошибка: {error}
+        </div>
+      )}
       {loading ? (
         <Loader />
       ) : (
